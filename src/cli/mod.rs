@@ -143,6 +143,9 @@ pub enum Commands {
     /// Search for skills
     Search(commands::search::SearchArgs),
 
+    /// Remove a skill from the index
+    Remove(commands::remove::RemoveArgs),
+
     /// Load a skill with progressive disclosure
     Load(commands::load::LoadArgs),
 

@@ -57,6 +57,7 @@ pub mod preferences;
 pub mod prune;
 pub mod quality;
 pub mod recommend;
+pub mod remove;
 pub mod remote;
 pub mod requirements;
 pub mod safety;
@@ -83,6 +84,7 @@ pub fn run(ctx: &AppContext, command: &Commands) -> Result<()> {
         Commands::Import(args) => import::run(ctx, args),
         Commands::Index(args) => index::run(ctx, args),
         Commands::Search(args) => search::run(ctx, args),
+        Commands::Remove(args) => remove::run(ctx, args),
         Commands::Load(args) => load::run(ctx, args),
         Commands::Install(args) => install::run(ctx, args),
         Commands::Suggest(args) => suggest::run(ctx, args),

@@ -1,6 +1,6 @@
 #!/bin/bash
-# ms installer - https://github.com/Dicklesworthstone/meta_skill
-# Usage: curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/meta_skill/main/scripts/install.sh | bash
+# ms installer - https://github.com/shahbajlive/meta_skill
+# Usage: curl -sSL https://raw.githubusercontent.com/shahbajlive/meta_skill/main/scripts/install.sh | bash
 #
 # Options:
 #   --install-dir DIR  Install directory (default: ~/.local/bin)
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 # Configuration
-REPO="Dicklesworthstone/meta_skill"
+REPO="shahbajlive/meta_skill"
 BINARY_NAME="ms"
 DEFAULT_INSTALL_DIR="${HOME}/.local/bin"
 
@@ -62,14 +62,11 @@ Environment variables:
   NO_COLOR           Disable colored output
 
 Examples:
-  # Install latest version
-  curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/meta_skill/main/scripts/install.sh | bash
+  # Install from source (recommended if no releases exist)
+  git clone https://github.com/shahbajlive/meta_skill.git && cd meta_skill && cargo install --path .
 
-  # Install specific version
-  curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/meta_skill/main/scripts/install.sh | VERSION=v0.1.5 bash
-
-  # Install to custom directory
-  curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/meta_skill/main/scripts/install.sh | INSTALL_DIR=/usr/local/bin bash
+  # Install latest release via script
+  curl -sSL https://raw.githubusercontent.com/shahbajlive/meta_skill/main/scripts/install.sh | bash
 EOF
 }
 
