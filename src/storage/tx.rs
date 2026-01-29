@@ -214,18 +214,11 @@ impl GlobalLock {
         let holder: LockHolder = serde_json::from_str(&content)
             .map_err(|e| MsError::TransactionFailed(format!("parse lock holder: {e}")))?;
 
-        // Check if process is still alive using /proc on Linux
-        #[cfg(target_os = "linux")]
-        {
-            let proc_path = format!("/proc/{}", holder.pid);
-            if !std::path::Path::new(&proc_path).exists() {
-                // Process no longer exists - lock is stale
-                return Ok(None);
-            }
+        // Check if process is still alive using cross-platform method
+        if !crate::utils::system::is_process_alive(holder.pid) {
+            // Process no longer exists - lock is stale
+            return Ok(None);
         }
-
-        // On other platforms, we trust the lock file content
-        // The lock itself is enforced by the OS-level flock
 
         Ok(Some(holder))
     }

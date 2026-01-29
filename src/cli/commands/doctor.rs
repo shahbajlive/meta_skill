@@ -1,6 +1,5 @@
 //! ms doctor - Health checks and repairs
 
-use std::path::Path;
 use std::sync::Arc;
 
 use clap::Args;
@@ -139,19 +138,15 @@ fn check_lock_status(ctx: &AppContext, verbose: bool) -> Result<usize> {
         println!("  Host: {}", holder.hostname);
         println!("  Since: {}", holder.acquired_at);
 
-        // Check if process is still alive
-        #[cfg(target_os = "linux")]
-        {
-            let proc_path = format!("/proc/{}", holder.pid);
-            if !Path::new(&proc_path).exists() {
-                println!(
-                    "  {} Process {} no longer exists - lock may be stale",
-                    "!".yellow(),
-                    holder.pid
-                );
-                println!("  Use --break-lock to remove stale lock");
-                return Ok(1);
-            }
+        // Check if process is still alive using cross-platform method
+        if !crate::utils::system::is_process_alive(holder.pid) {
+            println!(
+                "  {} Process {} no longer exists - lock may be stale",
+                "!".yellow(),
+                holder.pid
+            );
+            println!("  Use --break-lock to remove stale lock");
+            return Ok(1);
         }
 
         if verbose {
@@ -797,42 +792,31 @@ fn check_perf(ctx: &AppContext, verbose: bool) -> Result<usize> {
 
     let mut issues = 0;
 
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(statm) = std::fs::read_to_string("/proc/self/statm") {
-            let parts: Vec<&str> = statm.split_whitespace().collect();
-            if let Some(rss_pages) = parts.get(1) {
-                if let Ok(pages) = rss_pages.parse::<u64>() {
-                    let page_size = 4096; // Standard page size assumption
-                    let rss_bytes = pages * page_size;
-                    let rss_mb = rss_bytes as f64 / (1024.0 * 1024.0);
-
-                    if rss_mb > 100.0 {
-                        println!(
-                            "{} High memory usage: {:.2} MB (target < 100 MB)",
-                            "!".yellow(),
-                            rss_mb
-                        );
-                        issues += 1;
-                    } else {
-                        println!("{} Memory usage: {:.2} MB", "✓".green(), rss_mb);
-                    }
-                }
+    match crate::utils::system::get_current_rss_mb() {
+        Ok(rss_mb) if rss_mb > 0.0 => {
+            if rss_mb > 100.0 {
+                println!(
+                    "{} High memory usage: {:.2} MB (target < 100 MB)",
+                    "!".yellow(),
+                    rss_mb
+                );
+                issues += 1;
+            } else {
+                println!("{} Memory usage: {:.2} MB", "✓".green(), rss_mb);
             }
-        } else {
+        }
+        Ok(_) => {
             println!(
-                "{} Memory check failed (cannot read /proc/self/statm)",
+                "{} Memory check skipped (not supported on this OS)",
+                "-".dimmed()
+            );
+        }
+        Err(_) => {
+            println!(
+                "{} Memory check failed",
                 "!".yellow()
             );
         }
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        println!(
-            "{} Memory check skipped (not supported on this OS)",
-            "-".dimmed()
-        );
     }
 
     // Check search latency (simple benchmark)

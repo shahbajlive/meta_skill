@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{MsError, Result};
 use crate::storage::{Database, GitArchive};
+use crate::utils::system::is_process_alive;
 
 /// Configuration for retry behavior with exponential backoff.
 #[derive(Debug, Clone)]
@@ -599,49 +600,6 @@ impl RecoveryManager {
 
         Ok(())
     }
-}
-
-/// Check if a process with the given PID is still running.
-/// Works on Linux, macOS, and falls back to kill(0) on other Unix systems.
-#[cfg(unix)]
-fn is_process_alive(pid: u32) -> bool {
-    // On Linux, check /proc/{pid} for efficiency and safety
-    #[cfg(target_os = "linux")]
-    {
-        let proc_path = format!("/proc/{pid}");
-        if std::path::Path::new("/proc").is_dir() {
-            return std::path::Path::new(&proc_path).exists();
-        }
-    }
-
-    // On other Unix systems (or if /proc is missing), use `kill -0` command
-    // This avoids unsafe blocks required for libc::kill, satisfying -F unsafe-code
-    use std::process::Command;
-    match Command::new("kill").arg("-0").arg(pid.to_string()).output() {
-        Ok(output) => {
-            if output.status.success() {
-                true
-            } else {
-                // If exit code is non-zero, it might be "No such process" (dead)
-                // or "Permission denied" (alive but owned by another user).
-                // kill -0 typically returns 1 for both.
-                // We check stderr for clues, though this is heuristic.
-                let stderr = String::from_utf8_lossy(&output.stderr).to_lowercase();
-                stderr.contains("denied") || stderr.contains("permitted")
-            }
-        }
-        Err(_) => {
-            // If we can't run kill, assume alive to avoid breaking valid locks
-            true
-        }
-    }
-}
-
-#[cfg(not(unix))]
-fn is_process_alive(_pid: u32) -> bool {
-    // On non-Unix systems (Windows), we can't easily check process liveness
-    // Assume the process is alive to avoid accidentally breaking active locks
-    true
 }
 
 /// Execute a fallible operation with retry logic.
